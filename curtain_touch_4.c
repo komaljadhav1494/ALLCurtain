@@ -1,8 +1,16 @@
-/*
- * this code only use for one curtain for porus client
- *pCB: 5.4G17
- * client: sunil kabmle
-*/
+/* 
+ * File:   curtain_2_4switch.c
+ * Author: POORNENDRA RAI
+ *
+ * Created on 18 February, 2018, 5:01 PM
+ */
+
+/* 
+ * File:   curtainControl.c
+ * Author: POORNENDRA RAI
+ *
+ * Created on 5 January, 2018, 6:28 PM
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,14 +46,14 @@
 
 #define OPEN_1 RF1
 #define CLOSE_1 RF0
-//#define OPEN_2 RA3
-//#define CLOSE_2 RA2
+#define OPEN_2 RA3
+#define CLOSE_2 RA2
 //#define FAN RE5
 
-#define OPEN_INPUT_1 RF7
-#define CLOSE_INPUT_1 RF5
-//#define OPEN_INPUT_2 RF3
-//#define CLOSE_INPUT_2 RF2
+#define OPEN_INPUT_1 RA5
+#define CLOSE_INPUT_1 RF2
+#define OPEN_INPUT_2 RF3
+#define CLOSE_INPUT_2 RF2
 //#define SW5 RA5
 
 #define REQUIRED_CURTAIN_DELAY_IN_SECONDS 30000 
@@ -69,21 +77,21 @@ int TimerCounter1=0,TimerCounter2=0;
 #define OFF 0
 void writeUART(char *str2Write);
 interrupt void isr(){     
-//    if(PIE3bits.TMR3IE==1 && PIR3bits.TMR3IF==1)
-//    {           
-//        PIR3bits.TMR3IF=0;
-//        if(TimerCounter2>=125){
-//        OPEN_2=0;           CLOSE_2=0;       // TX1REG='Q';
-//        st[9]='G';				st[10]='0';                st[11]='0';                st[12]='3';            writeUART(st+9);
-//        T3CONbits.TMR3ON=0;
-//        st[13]='G';             st[14]='0';                st[15]='0';                st[16]='4';            writeUART(st+13);
-//        }
-//        else if(curtFlag2){
-//        TimerCounter2=TimerCounter2+1;
-//        TMR3H=0x0B;        TMR3L=0xDC;        T3CONbits.TMR3ON = 1;
-//        //TX1REG='p';
-//        }        
-//    }
+    if(PIE3bits.TMR3IE==1 && PIR3bits.TMR3IF==1)
+    {           
+        PIR3bits.TMR3IF=0;
+        if(TimerCounter2>=125){
+        OPEN_2=0;           CLOSE_2=0;       // TX1REG='Q';
+        st[9]='G';				st[10]='0';                st[11]='0';                st[12]='3';            writeUART(st+9);
+        T3CONbits.TMR3ON=0;
+        st[13]='G';             st[14]='0';                st[15]='0';                st[16]='4';            writeUART(st+13);
+        }
+        else if(curtFlag2){
+        TimerCounter2=TimerCounter2+1;
+        TMR3H=0x0B;        TMR3L=0xDC;        T3CONbits.TMR3ON = 1;
+        //TX1REG='p';
+        }        
+    }
     
     
     if(PIE1bits.TMR1IE == 1 && PIR1bits.TMR1IF==1)
@@ -103,7 +111,7 @@ interrupt void isr(){
     }
     // ************************************* UART *********************************************** //
     // ************************************* UART 1 XBEE*********************************************** //
-        if(RC1IF){
+        if(RC1IF==1){
             if(RC1STAbits.OERR) // If over run error, then reset the receiver
             {                
                 RC1STAbits.CREN = 0;                RC1STAbits.CREN = 1;                
@@ -155,9 +163,8 @@ void main() {
     pin_manager();
     periperal_init();
     
-    OPEN_1 = OFF;    CLOSE_1 = OFF;      //OPEN_2 = OFF;    CLOSE_2 = OFF;  
+    OPEN_1 = OFF;    CLOSE_1 = OFF;      OPEN_2 = OFF;    CLOSE_2 = OFF;  
     M1=ONN;    M2=ONN;    M3=ONN;    M4=ONN;
-    
     st[0]='%';    st[10]='@';
        
     while(1){
@@ -273,9 +280,55 @@ void main() {
                 }
                 M2=0;                man=1;
 			}        
+        
+        ///// ********************************************* 333333333333 ///
+        if(child_LOCK[5]==OFF && OPEN_INPUT_2==OFF && M3==OFF)
+			{    
+                if(man==1)
+                {
+                st[9]='R';                st[10]='0';               st[11]='0';                st[12]='3';                writeUART(st+9);
+                CLOSE_2=OFF;              OPEN_2=OFF;				curtFlag2=0;               TimerCounter2=0;
+                }
+				M3=1;                man=1;
+			}
+	   
+			if(child_LOCK[5]==OFF && OPEN_INPUT_2==ONN && M3==ONN)
+			{                 
+                if(man==1)
+                {
+                st[13]='R';               st[14]='0';               st[15]='0';                st[16]='4';               writeUART(st+13);
+                CLOSE_2=OFF;
+                st[9]='R';                st[10]='1';               st[11]='0';                st[12]='3';                writeUART(st+9);                                
+                OPEN_2=ONN;               curtFlag2=1;              TimerCounter2=0;
+                TMR3H=0x0B;               TMR3L=0xDC;               PIR3bits.TMR3IF=0;         T3CONbits.TMR3ON = 1;   
+                }
+                M3=0;                man=1;                
+			}
        
+        ///// ********************************************* 444444444444444444444///
+            if(child_LOCK[7]==OFF && CLOSE_INPUT_2==OFF && M4==OFF)
+			{  
+                if(man==1){
+                st[13]='R';                st[14]='0';              st[15]='0';                st[16]='4';                writeUART(st+13);
+                CLOSE_2=OFF;               OPEN_2=OFF;				curtFlag2=0;               TimerCounter2=0;
+				}                
+                M4=1;                man=1;
+			}
+       
+            if(child_LOCK[7]==OFF && CLOSE_INPUT_2==ONN && M4==ONN)
+			{   
+                if(man==1)
+                {
+                st[9]='R';                st[10]='0';               st[11]='0';                st[12]='3';                writeUART(st+9);
+                OPEN_2=OFF;
+                st[13]='R';                st[14]='1';              st[15]='0';                st[16]='4';               writeUART(st+13);                                
+                CLOSE_2=ONN;                curtFlag2=1;            TimerCounter2=0;
+                TMR1H=0x0B;                 TMR1L=0xDC;             PIR3bits.TMR3IF=0;         T3CONbits.TMR3ON = 1;   
+                }
+                M4=0;                man=1;
+			}
     }
-
+  //  }
 }
 
 void copy_frame(int start, int end){
@@ -357,7 +410,32 @@ void ACTION(char Switch_Num_10s, char Switch_Num_1s, char sw_status, char speed_
             else{
                 CLOSE_1=0;            	OPEN_1=0;           	 	T1CONbits.TMR1ON = 0;       curtFlag1=0;            TimerCounter1=0;
             }
-            break;         
+            break;
+
+//        case 3:// backward
+//            M3=switch_status;
+//            if(switch_status==1){
+//                CLOSE_2=OFF;
+//                st[13]='G';                st[14]='0';          st[15]='0';                st[16]='4';              writeUART(st+13);                                
+//                OPEN_2=ONN;                curtFlag2=1;         TimerCounter2=0;
+//                TMR3H=0x0B;                TMR3L=0xDC;          PIR3bits.TMR3IF=0;         T3CONbits.TMR3ON = 1;   
+//            }
+//            else{            
+//                CLOSE_2=0;                 OPEN_2=0;            T1CONbits.TMR1ON = 0;      curtFlag2=0;             TimerCounter2=0;            
+//            }
+//            break;           
+//        case 4: // forward
+//            M4=switch_status;
+//            if(switch_status==1){                
+//                OPEN_2=OFF;
+//                st[9]='G';                  st[10]='0';         st[11]='0';                st[12]='3';              writeUART(st+9);                                
+//                CLOSE_2=ONN;                curtFlag2=1;        TimerCounter2=0;
+//                TMR1H=0x0B;                 TMR1L=0xDC;         PIR3bits.TMR3IF=0;         T3CONbits.TMR3ON = 1;
+//            }
+//            else{
+//                CLOSE_2=0;                  OPEN_2=0;           T3CONbits.TMR3ON = 0;       curtFlag2=0;            TimerCounter2=0;
+//            }
+//            break;          
         default:
             break;
     }
@@ -489,18 +567,18 @@ void pin_manager()  {
      ANSELF=0x00;
      TRISFbits.TRISF0=0;            // relay 1
      TRISFbits.TRISF1=0;            // relay 2
-//     TRISFbits.TRISF2=1;            // switch 4
-//     TRISFbits.TRISF3=1;            // switch 3
-//     TRISFbits.TRISF4=1;
+     TRISFbits.TRISF2=1;            // switch 4
+     TRISFbits.TRISF3=1;            // switch 3
+     TRISFbits.TRISF4=1;
      TRISFbits.TRISF5=1;            // switch 2
-  //   TRISFbits.TRISF6=1;
+     TRISFbits.TRISF6=1;
      TRISFbits.TRISF7=1;            // switch 1
      
      /* PORT E */
      WPUE=0x00;
      ANSELE=0x00;
-//     TRISEbits.TRISE3=1;               // zcd RE3 input
-//     TRISEbits.TRISE5=0;               // pwm RE5 output
+     TRISEbits.TRISE3=1;               // zcd RE3 input
+     TRISEbits.TRISE5=0;               // pwm RE5 output
      
      /* PORT D */  
      WPUD=0x00;
@@ -536,4 +614,3 @@ void pin_manager()  {
     TRISCbits.TRISC7 = 1;               // Rx pin = input
 
 }
-
