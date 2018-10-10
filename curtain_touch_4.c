@@ -1,7 +1,7 @@
 /* 
  * File:   varun_4_1.c
  * Author: VARUN SAHNI
- *
+ *board used: mega
  * Created on changed 26 April, 2018, 8:40 PM
  * this is working code  for 4 switch for 2 curtain black touch panel
  * ISSU: RESET OF BOARD
